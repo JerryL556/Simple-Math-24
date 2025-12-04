@@ -209,7 +209,6 @@
         <span class="drop-hint">Drop numbers/operators/parentheses here</span>
       </div>
       <div class="controls" style="margin-top:10px;">
-        <button id="check-btn">Check = 24?</button>
         <button id="new-btn">Next Set</button>
         <button id="clear-btn" class="secondary">Clear Expression</button>
         <button id="solve-btn" class="secondary">Solve</button>
@@ -546,7 +545,6 @@
       return v || fallback;
     }
 
-    document.getElementById("check-btn").addEventListener("click", evaluateExpression);
     document.getElementById("clear-btn").addEventListener("click", clearExpression);
     document.getElementById("new-btn").addEventListener("click", randomNumbers);
     document.getElementById("solve-btn").addEventListener("click", solveCurrent);
