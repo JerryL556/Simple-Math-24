@@ -148,18 +148,6 @@
       font-size: 16px;
     }
     .status strong { color: var(--gold); }
-    .trash {
-      border: 1px dashed rgba(255, 255, 255, 0.18);
-      min-height: 70px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--muted);
-      font-size: 14px;
-      padding: 10px;
-      text-align: center;
-    }
     .tag {
       display: inline-flex;
       align-items: center;
@@ -215,11 +203,6 @@
       </div>
       <div class="status" id="status"></div>
     </section>
-
-    <section style="margin-top:14px;">
-      <h3>Drag Out to Remove</h3>
-      <div id="trash" class="trash dropzone">Drop expression tokens here to remove (numbers return to the pool)</div>
-    </section>
   </div>
 
   <script>
@@ -227,11 +210,11 @@
     const operatorsTray = document.getElementById("operators-tray");
     const parenTray = document.getElementById("paren-tray");
     const expressionArea = document.getElementById("expression-area");
-    const trashZone = document.getElementById("trash");
     const statusEl = document.getElementById("status");
 
     let numbers = [];
     let expressionTokens = [];
+    let draggingExprIndex = null;
 
     function randomNumbers() {
       const maxTries = 500;
@@ -304,6 +287,7 @@
 
     function handleDragStartFromExpression(ev, index) {
       const token = expressionTokens[index];
+      draggingExprIndex = index;
       ev.dataTransfer.setData("application/json", JSON.stringify({ source: "expression", index }));
     }
 
@@ -393,6 +377,7 @@
       renderExpression();
       setStatus("");
       autoEvaluate();
+      draggingExprIndex = null;
     }
 
     function handleSlotDrop(ev) {
@@ -460,21 +445,6 @@
       } else {
         setStatus("No solution found for this set.");
       }
-    }
-
-    function handleDropOnTrash(ev) {
-      ev.preventDefault();
-      const data = readTransfer(ev);
-      if (!data || data.source !== "expression") return;
-      const removed = expressionTokens.splice(data.index, 1);
-      if (removed.length && removed[0].type === "number" && removed[0].id) {
-        setNumberUsed(removed[0].id, false);
-      } else {
-        renderExpression();
-      }
-      renderExpression();
-      setStatus("");
-      autoEvaluate();
     }
 
     function readTransfer(ev) {
@@ -550,9 +520,28 @@
     document.getElementById("solve-btn").addEventListener("click", solveCurrent);
 
     enableDrop(expressionArea);
-    enableDrop(trashZone);
     expressionArea.addEventListener("drop", handleExpressionDrop);
-    trashZone.addEventListener("drop", handleDropOnTrash);
+    document.addEventListener("dragend", () => {
+      draggingExprIndex = null;
+    });
+    document.addEventListener("drop", (ev) => {
+      if (draggingExprIndex === null) return;
+      if (expressionArea.contains(ev.target)) {
+        draggingExprIndex = null;
+        return;
+      }
+      ev.preventDefault();
+      const removed = expressionTokens.splice(draggingExprIndex, 1);
+      if (removed.length && removed[0].type === "number" && removed[0].id) {
+        setNumberUsed(removed[0].id, false);
+      } else {
+        renderExpression();
+      }
+      renderExpression();
+      setStatus("");
+      autoEvaluate();
+      draggingExprIndex = null;
+    });
 
     renderOperators();
     renderParens();
