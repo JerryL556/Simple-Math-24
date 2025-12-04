@@ -215,6 +215,7 @@
     let numbers = [];
     let expressionTokens = [];
     let draggingExprIndex = null;
+    let dropHandled = false;
 
     function randomNumbers() {
       const maxTries = 500;
@@ -288,6 +289,7 @@
     function handleDragStartFromExpression(ev, index) {
       const token = expressionTokens[index];
       draggingExprIndex = index;
+      dropHandled = false;
       ev.dataTransfer.setData("application/json", JSON.stringify({ source: "expression", index }));
     }
 
@@ -377,6 +379,7 @@
       renderExpression();
       setStatus("");
       autoEvaluate();
+      dropHandled = true;
       draggingExprIndex = null;
     }
 
@@ -522,11 +525,24 @@
     enableDrop(expressionArea);
     expressionArea.addEventListener("drop", handleExpressionDrop);
     document.addEventListener("dragend", () => {
+      if (draggingExprIndex !== null && !dropHandled) {
+        const removed = expressionTokens.splice(draggingExprIndex, 1);
+        if (removed.length && removed[0].type === "number" && removed[0].id) {
+          setNumberUsed(removed[0].id, false);
+        } else {
+          renderExpression();
+        }
+        renderExpression();
+        setStatus("");
+        autoEvaluate();
+      }
+      dropHandled = false;
       draggingExprIndex = null;
     });
     document.addEventListener("drop", (ev) => {
       if (draggingExprIndex === null) return;
       if (expressionArea.contains(ev.target)) {
+        dropHandled = true;
         draggingExprIndex = null;
         return;
       }
@@ -540,6 +556,7 @@
       renderExpression();
       setStatus("");
       autoEvaluate();
+      dropHandled = true;
       draggingExprIndex = null;
     });
 
