@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math 24 Drag & Drop</title>
+  <style>
+    :root {
+      --navy: #0b1a33;
+      --navy-soft: #112544;
+      --gold: #f6c344;
+      --gold-soft: #e3b033;
+      --text: #f1f3f7;
+      --muted: #8ba0c6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(120% 120% at 20% 20%, #142a4d, #081427);
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+    }
+    .card {
+      width: min(1100px, 100%);
+      background: linear-gradient(145deg, var(--navy) 0%, #0f203c 100%);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+      padding: 28px;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 16px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      letter-spacing: 0.4px;
+    }
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+    section {
+      background: var(--navy-soft);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 14px;
+      min-height: 120px;
+    }
+    section h3 {
+      margin: 0 0 10px;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+    .tray {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .token {
+      min-width: 52px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      font-size: 18px;
+      text-align: center;
+      cursor: grab;
+      user-select: none;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    .token:active { cursor: grabbing; }
+    .token:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
+    }
+    .token.operator { background: rgba(246, 195, 68, 0.08); color: var(--gold); }
+    .token.number.available { background: rgba(246, 195, 68, 0.16); color: #ffe8a3; }
+    .token.number.used {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--muted);
+      border-style: dashed;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .token.paren { background: rgba(139, 160, 198, 0.12); color: #cdd9f0; }
+    #expression-area {
+      min-height: 96px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 12px;
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+    }
+    .drop-slot {
+      width: 18px;
+      height: 34px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    .drop-hint { color: var(--muted); font-size: 14px; }
+    .controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: var(--gold);
+      color: #1b2738;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25); }
+    button.secondary { background: rgba(255, 255, 255, 0.08); color: var(--text); }
+    .status {
+      margin-top: 12px;
+      font-size: 16px;
+    }
+    .status strong { color: var(--gold); }
+    .trash {
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      min-height: 70px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      font-size: 14px;
+      padding: 10px;
+      text-align: center;
+    }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--muted);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 13px;
+    }
+    @media (max-width: 640px) {
+      h1 { font-size: 24px; }
+      .token { min-width: 48px; padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <header>
+      <div>
+        <h1>Math 24</h1>
+        <p class="subtitle">Drag four numbers (one-time) and any operators/parentheses to make exactly 24.</p>
+      </div>
+      <div class="tag">Rules: use all 4 numbers • + − × ÷ • parentheses allowed</div>
+    </header>
+
+    <div class="grid">
+      <section>
+        <h3>Numbers (1 use each)</h3>
+        <div id="numbers-tray" class="tray"></div>
+      </section>
+
+      <section>
+        <h3>Operators (infinite)</h3>
+        <div id="operators-tray" class="tray"></div>
+      </section>
+
+      <section>
+        <h3>Parentheses</h3>
+        <div id="paren-tray" class="tray"></div>
+      </section>
+    </div>
+
+    <section style="margin-top:14px;">
+      <h3>Build Expression</h3>
+      <div id="expression-area" class="dropzone">
+        <span class="drop-hint">Drop numbers/operators/parentheses here</span>
+      </div>
+      <div class="controls" style="margin-top:10px;">
+        <button id="check-btn">Check = 24?</button>
+        <button id="new-btn">Next Set</button>
+        <button id="clear-btn" class="secondary">Clear Expression</button>
+        <button id="solve-btn" class="secondary">Solve</button>
+      </div>
+      <div class="status" id="status"></div>
+    </section>
+
+    <section style="margin-top:14px;">
+      <h3>Drag Out to Remove</h3>
+      <div id="trash" class="trash dropzone">Drop expression tokens here to remove (numbers return to the pool)</div>
+    </section>
+  </div>
+
+  <script>
+    const numbersTray = document.getElementById("numbers-tray");
+    const operatorsTray = document.getElementById("operators-tray");
+    const parenTray = document.getElementById("paren-tray");
+    const expressionArea = document.getElementById("expression-area");
+    const trashZone = document.getElementById("trash");
+    const statusEl = document.getElementById("status");
+
+    let numbers = [];
+    let expressionTokens = [];
+
+    function randomNumbers() {
+      const maxTries = 500;
+      let attempt = 0;
+      let candidateValues = [];
+      let solution = null;
+      while (attempt < maxTries && !solution) {
+        candidateValues = Array.from({ length: 4 }, () => Math.floor(Math.random() * 10) + 1);
+        solution = findSolution(candidateValues.map((v) => ({ value: v, expr: v.toString() })));
+        attempt += 1;
+      }
+      if (!solution) {
+        candidateValues = [3, 3, 8, 8]; // fallback known-solvable set
+        solution = findSolution(candidateValues.map((v) => ({ value: v, expr: v.toString() })));
+      }
+      numbers = candidateValues.map((val, i) => ({
+        id: `n${Date.now()}-${i}-${Math.random().toString(16).slice(2, 6)}`,
+        value: val,
+        used: false,
+      }));
+      clearExpression();
+      return solution;
+    }
+
+    function renderNumbers() {
+      numbersTray.innerHTML = "";
+      numbers.forEach((num) => {
+        const token = document.createElement("div");
+        token.className = `token number ${num.used ? "used" : "available"}`;
+        token.textContent = num.value;
+        token.draggable = !num.used;
+        token.dataset.id = num.id;
+        token.dataset.type = "number";
+        token.addEventListener("dragstart", (e) => handleDragStartFromPool(e, { type: "number", id: num.id, value: num.value }));
+        numbersTray.appendChild(token);
+      });
+    }
+
+    function renderOperators() {
+      const ops = ["+", "-", "×", "÷"];
+      operatorsTray.innerHTML = "";
+      ops.forEach((op) => {
+        const token = document.createElement("div");
+        token.className = "token operator";
+        token.textContent = op;
+        token.draggable = true;
+        token.dataset.type = "operator";
+        token.addEventListener("dragstart", (e) => handleDragStartFromPool(e, { type: "operator", value: op }));
+        operatorsTray.appendChild(token);
+      });
+    }
+
+    function renderParens() {
+      const parens = ["(", ")"];
+      parenTray.innerHTML = "";
+      parens.forEach((p) => {
+        const token = document.createElement("div");
+        token.className = "token paren";
+        token.textContent = p;
+        token.draggable = true;
+        token.dataset.type = "paren";
+        token.addEventListener("dragstart", (e) => handleDragStartFromPool(e, { type: "paren", value: p }));
+        parenTray.appendChild(token);
+      });
+    }
+
+    function handleDragStartFromPool(ev, payload) {
+      ev.dataTransfer.setData("application/json", JSON.stringify({ source: "pool", ...payload }));
+    }
+
+    function handleDragStartFromExpression(ev, index) {
+      const token = expressionTokens[index];
+      ev.dataTransfer.setData("application/json", JSON.stringify({ source: "expression", index }));
+    }
+
+    function createSlot(index) {
+      const slot = document.createElement("div");
+      slot.className = "drop-slot";
+      slot.dataset.index = index.toString();
+      slot.addEventListener("dragover", (e) => e.preventDefault());
+      slot.addEventListener("drop", handleSlotDrop);
+      slot.title = "Drop here";
+      return slot;
+    }
+
+    function renderExpression() {
+      expressionArea.innerHTML = "";
+      if (!expressionTokens.length) {
+        const slot = createSlot(0);
+        slot.style.width = "100%";
+        slot.style.height = "48px";
+        slot.textContent = "Drop here";
+        expressionArea.appendChild(slot);
+        return;
+      }
+      expressionTokens.forEach((t, idx) => {
+        expressionArea.appendChild(createSlot(idx));
+        const token = document.createElement("div");
+        token.className = `token expr-token ${t.type === "number" ? "number available" : t.type === "operator" ? "operator" : "paren"}`;
+        token.textContent = t.display;
+        token.draggable = true;
+        token.addEventListener("dragstart", (e) => handleDragStartFromExpression(e, idx));
+        expressionArea.appendChild(token);
+      });
+      expressionArea.appendChild(createSlot(expressionTokens.length));
+    }
+
+    function findNumberById(id) {
+      return numbers.find((n) => n.id === id);
+    }
+
+    function setNumberUsed(id, used) {
+      const num = findNumberById(id);
+      if (num) num.used = used;
+      renderNumbers();
+    }
+
+    function getIndexByPointer(ev) {
+      const tokens = [...expressionArea.querySelectorAll(".expr-token")];
+      if (!tokens.length) return 0;
+      const x = ev.clientX;
+      const centers = tokens.map((el) => {
+        const r = el.getBoundingClientRect();
+        return r.left + r.width / 2;
+      });
+      if (x < centers[0]) return 0;
+      for (let i = 0; i < centers.length - 1; i++) {
+        const mid = (centers[i] + centers[i + 1]) / 2;
+        if (x < mid) return i + 1;
+      }
+      return tokens.length;
+    }
+
+    function applyDrop(data, dropIndex) {
+      if (data.source === "pool") {
+        if (data.type === "number") {
+          const num = findNumberById(data.id);
+          if (!num || num.used) return;
+          expressionTokens.splice(dropIndex, 0, {
+            type: "number",
+            value: num.value.toString(),
+            id: num.id,
+            display: num.value.toString(),
+          });
+          setNumberUsed(data.id, true);
+        } else if (data.type === "operator") {
+          const symbol = data.value === "×" ? "*" : data.value === "÷" ? "/" : data.value;
+          expressionTokens.splice(dropIndex, 0, { type: "operator", value: symbol, display: data.value });
+        } else if (data.type === "paren") {
+          expressionTokens.splice(dropIndex, 0, { type: "paren", value: data.value, display: data.value });
+        }
+      } else if (data.source === "expression") {
+        const removed = expressionTokens.splice(data.index, 1)[0];
+        if (removed) {
+          const adjustedIndex = data.index < dropIndex ? dropIndex - 1 : dropIndex;
+          expressionTokens.splice(adjustedIndex, 0, removed);
+        }
+      }
+      renderExpression();
+      setStatus("");
+      autoEvaluate();
+    }
+
+    function handleSlotDrop(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const data = readTransfer(ev);
+      if (!data) return;
+      const dropIndex = parseInt(ev.currentTarget.dataset.index, 10);
+      applyDrop(data, dropIndex);
+    }
+
+    function handleExpressionDrop(ev) {
+      ev.preventDefault();
+      const data = readTransfer(ev);
+      if (!data) return;
+      const dropIndex = getIndexByPointer(ev);
+      applyDrop(data, dropIndex);
+    }
+
+    function isCloseTo24(val) {
+      return Math.abs(val - 24) < 1e-6;
+    }
+
+    function findSolution(items) {
+      if (items.length === 1) {
+        return isCloseTo24(items[0].value) ? items[0].expr : null;
+      }
+
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const rest = items.filter((_, idx) => idx !== i && idx !== j);
+          const a = items[i];
+          const b = items[j];
+
+          const candidates = [
+            { value: a.value + b.value, expr: `(${a.expr}+${b.expr})` },
+            { value: a.value - b.value, expr: `(${a.expr}-${b.expr})` },
+            { value: b.value - a.value, expr: `(${b.expr}-${a.expr})` },
+            { value: a.value * b.value, expr: `(${a.expr}*${b.expr})` },
+          ];
+
+          if (Math.abs(b.value) > 1e-9) {
+            candidates.push({ value: a.value / b.value, expr: `(${a.expr}/${b.expr})` });
+          }
+          if (Math.abs(a.value) > 1e-9) {
+            candidates.push({ value: b.value / a.value, expr: `(${b.expr}/${a.expr})` });
+          }
+
+          for (const cand of candidates) {
+            const next = [...rest, cand];
+            const res = findSolution(next);
+            if (res) return res;
+          }
+        }
+      }
+      return null;
+    }
+
+    function solveCurrent() {
+      const items = numbers.map((n) => ({ value: n.value, expr: n.value.toString() }));
+      const solution = findSolution(items);
+      if (solution) {
+        const pretty = solution.replace(/\*/g, "×").replace(/\//g, "÷");
+        setStatus(`Solution: ${pretty}`);
+      } else {
+        setStatus("No solution found for this set.");
+      }
+    }
+
+    function handleDropOnTrash(ev) {
+      ev.preventDefault();
+      const data = readTransfer(ev);
+      if (!data || data.source !== "expression") return;
+      const removed = expressionTokens.splice(data.index, 1);
+      if (removed.length && removed[0].type === "number" && removed[0].id) {
+        setNumberUsed(removed[0].id, false);
+      } else {
+        renderExpression();
+      }
+      renderExpression();
+      setStatus("");
+      autoEvaluate();
+    }
+
+    function readTransfer(ev) {
+      try {
+        return JSON.parse(ev.dataTransfer.getData("application/json"));
+      } catch {
+        return null;
+      }
+    }
+
+    function enableDrop(zone) {
+      zone.addEventListener("dragover", (e) => e.preventDefault());
+    }
+
+    function clearExpression() {
+      expressionTokens = [];
+      numbers.forEach((n) => (n.used = false));
+      renderNumbers();
+      renderExpression();
+      setStatus("");
+    }
+
+    function allNumbersUsed() {
+      return numbers.every((n) => n.used);
+    }
+
+    function evaluateExpression(quiet = false) {
+      if (!expressionTokens.length) {
+        if (!quiet) setStatus("Build an expression first.");
+        return;
+      }
+      if (!allNumbersUsed()) {
+        if (!quiet) setStatus("Use all four numbers before checking.");
+        return;
+      }
+      const expr = expressionTokens.map((t) => t.value).join(" ");
+      let result;
+      try {
+        // Tokens are restricted to known values, so evaluation is safe here.
+        result = Function(`"use strict"; return (${expr});`)();
+      } catch (err) {
+        if (!quiet) setStatus("Invalid expression. Check your order/parentheses.");
+        return;
+      }
+      if (!Number.isFinite(result)) {
+        if (!quiet) setStatus("Expression is not valid (division by zero?).");
+        return;
+      }
+      const diff = Math.abs(result - 24);
+      if (diff < 1e-6) {
+        setStatus(`Success! ${expr} = 24`, true);
+      } else {
+        setStatus(`Not yet. ${expr} = ${Number(result.toFixed(4))}`);
+      }
+    }
+
+    function autoEvaluate() {
+      evaluateExpression(true);
+    }
+
+    function setStatus(msg, success = false) {
+      statusEl.innerHTML = msg ? `${success ? "<strong>✔</strong> " : ""}${msg}` : "";
+      statusEl.style.color = success ? varOrDefault("--gold", "#f6c344") : "inherit";
+    }
+
+    function varOrDefault(name, fallback) {
+      const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return v || fallback;
+    }
+
+    document.getElementById("check-btn").addEventListener("click", evaluateExpression);
+    document.getElementById("clear-btn").addEventListener("click", clearExpression);
+    document.getElementById("new-btn").addEventListener("click", randomNumbers);
+    document.getElementById("solve-btn").addEventListener("click", solveCurrent);
+
+    enableDrop(expressionArea);
+    enableDrop(trashZone);
+    expressionArea.addEventListener("drop", handleExpressionDrop);
+    trashZone.addEventListener("drop", handleDropOnTrash);
+
+    renderOperators();
+    renderParens();
+    randomNumbers();
+  </script>
+</body>
+</html>
